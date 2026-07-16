@@ -1,0 +1,16 @@
+{
+  "name": "orcamento-web",
+  "version": "1.0.0",
+  "description": "Site de orçamento com IA para extração e busca com validação de medida",
+  "main": "server.js",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "dotenv": "^16.4.5"
+  }
+}
