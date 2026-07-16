@@ -1,1 +1,42 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Orçamento Rápido</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <main class="container">
+    <header class="topo">
+      <h1>Orçamento Rápido</h1>
+      <p class="subtitulo">Cole a lista do cliente. A conta é feita direitinho, item por item.</p>
+    </header>
 
+    <section class="entrada">
+      <textarea id="textoLista" placeholder="Ex: 2x Tanque 10000L, 5 sacos de argamassa, tubo esgoto 100mm PVC"></textarea>
+      <button id="btnGerar">Gerar orçamento</button>
+    </section>
+
+    <section id="resultado" class="resultado" hidden>
+      <table id="tabelaResultado">
+        <thead>
+          <tr>
+            <th>Item</th>
+            <th>Qtd.</th>
+            <th>Preço unit.</th>
+            <th>Subtotal</th>
+          </tr>
+        </thead>
+        <tbody id="corpoTabela"></tbody>
+      </table>
+      <div class="total">Total: <span id="totalGeral">R$ 0,00</span></div>
+    </section>
+
+    <p id="carregando" class="carregando" hidden>Processando a lista…</p>
+    <p id="erro" class="erro" hidden></p>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
