@@ -18,11 +18,26 @@
 const express = require("express");
 const path = require("path");
 const fs = require("fs");
+const multer = require("multer");
 require("dotenv").config();
 
 const app = express();
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));
+
+// Upload em memória (não grava em disco), limite de 15MB por arquivo
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 15 * 1024 * 1024 },
+});
+
+const TIPOS_ACEITOS = {
+  "image/jpeg": "image",
+  "image/png": "image",
+  "image/webp": "image",
+  "image/gif": "image",
+  "application/pdf": "document",
+};
 
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 const LIMITE_SCORE = 0.5; // ajuste aqui se quiser resultados mais ou menos rígidos
@@ -120,13 +135,41 @@ function buscarProduto(textoItem) {
 
 // ============================================================
 // IA SÓ EXTRAI ITEM + QUANTIDADE (nunca calcula preço)
+// Aceita texto colado, e/ou uma imagem/PDF (foto da lista, print, PDF de orçamento)
 // ============================================================
-async function extrairItensComIA(texto) {
-  const systemPrompt = `Você extrai itens e quantidades de uma lista de orçamento escrita por um cliente.
+async function extrairItensComIA({ texto, arquivo }) {
+  const systemPrompt = `Você extrai itens e quantidades de uma lista de orçamento. A lista pode vir
+como texto colado, como foto/print de uma lista escrita à mão ou impressa, ou como um PDF.
 Responda APENAS com um JSON válido, sem texto antes ou depois, no formato:
-[{"item": "nome do item como o cliente escreveu, incluindo medidas e material", "quantidade": numero}]
-Se a quantidade não for informada, use 1. Não invente itens que não estão no texto.
-Preserve números de medida (frações, mm, polegadas) exatamente como o cliente escreveu.`;
+[{"item": "nome do item, incluindo medidas e material", "quantidade": numero}]
+Se a quantidade não for informada, use 1. Não invente itens que não estejam visíveis no
+texto/imagem/PDF. Preserve números de medida (frações, mm, polegadas) exatamente como
+aparecem na fonte. Se a imagem ou PDF estiver ilegível ou não contiver uma lista de itens,
+responda com um array vazio: []`;
+
+  const conteudo = [];
+
+  if (arquivo) {
+    const tipoBloco = TIPOS_ACEITOS[arquivo.mimetype];
+    const base64 = arquivo.buffer.toString("base64");
+
+    if (tipoBloco === "image") {
+      conteudo.push({
+        type: "image",
+        source: { type: "base64", media_type: arquivo.mimetype, data: base64 },
+      });
+    } else if (tipoBloco === "document") {
+      conteudo.push({
+        type: "document",
+        source: { type: "base64", media_type: arquivo.mimetype, data: base64 },
+      });
+    }
+  }
+
+  conteudo.push({
+    type: "text",
+    text: texto && texto.trim() ? texto : "Extraia os itens e quantidades da lista anexada.",
+  });
 
   const response = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
@@ -137,9 +180,9 @@ Preserve números de medida (frações, mm, polegadas) exatamente como o cliente
     },
     body: JSON.stringify({
       model: "claude-sonnet-4-6",
-      max_tokens: 1500,
+      max_tokens: 2000,
       system: systemPrompt,
-      messages: [{ role: "user", content: texto }],
+      messages: [{ role: "user", content: conteudo }],
     }),
   });
 
@@ -155,16 +198,24 @@ Preserve números de medida (frações, mm, polegadas) exatamente como o cliente
 }
 
 // ============================================================
-// ROTA PRINCIPAL: recebe o texto colado, devolve itens processados
+// ROTA PRINCIPAL: recebe texto e/ou arquivo (imagem/PDF), devolve itens processados
 // ============================================================
-app.post("/api/orcamento", async (req, res) => {
+app.post("/api/orcamento", upload.single("arquivo"), async (req, res) => {
   try {
-    const { texto } = req.body;
-    if (!texto || !texto.trim()) {
-      return res.status(400).json({ erro: "Envie um texto com a lista de itens." });
+    const texto = req.body.texto;
+    const arquivo = req.file;
+
+    if ((!texto || !texto.trim()) && !arquivo) {
+      return res.status(400).json({ erro: "Envie um texto, uma imagem ou um PDF com a lista de itens." });
     }
 
-    const itensExtraidos = await extrairItensComIA(texto);
+    if (arquivo && !TIPOS_ACEITOS[arquivo.mimetype]) {
+      return res.status(400).json({
+        erro: "Formato de arquivo não suportado. Envie imagem (JPG, PNG, WEBP, GIF) ou PDF.",
+      });
+    }
+
+    const itensExtraidos = await extrairItensComIA({ texto, arquivo });
 
     const itensProcessados = itensExtraidos.map(({ item, quantidade }) => {
       const resultado = buscarProduto(item);
@@ -183,4 +234,4 @@ app.post("/api/orcamento", async (req, res) => {
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Servidor rodando na porta ${PORT}`));
+app.listen(PORT, () => console.log(Servidor rodando na porta ${PORT}));
