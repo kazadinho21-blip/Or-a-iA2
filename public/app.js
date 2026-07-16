@@ -5,8 +5,15 @@ const corpoTabela = document.getElementById("corpoTabela");
 const totalGeralEl = document.getElementById("totalGeral");
 const carregando = document.getElementById("carregando");
 const erroEl = document.getElementById("erro");
+const arquivoInput = document.getElementById("arquivoInput");
+const nomeArquivoEl = document.getElementById("nomeArquivo");
 
 let itensAtuais = []; // guarda o estado atual (inclusive escolhas manuais)
+
+arquivoInput.addEventListener("change", () => {
+  const arquivo = arquivoInput.files[0];
+  nomeArquivoEl.textContent = arquivo ? `Anexado: ${arquivo.name}` : "";
+});
 
 function formatarMoeda(valor) {
   return valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -39,6 +46,7 @@ function renderizarTabela() {
     if (item.status === "resolvido") {
       const subtotal = item.produto.preco * item.quantidade;
       tr.innerHTML = `
+        <td>${item.produto.codigo}</td>
         <td>
           <div class="item-nome">${item.produto.item}</div>
           <div class="item-origem">a partir de "${item.textoOriginal}"</div>
@@ -58,13 +66,13 @@ function renderizarTabela() {
         .map(
           (op, i) => `
             <button class="opcao-btn" data-indice="${indice}" data-opcao="${i}">
-              ${op.item} — ${formatarMoeda(op.preco)} (${op.unidade})
+              [${op.codigo}] ${op.item} — ${formatarMoeda(op.preco)} (${op.unidade})
             </button>`
         )
         .join("");
 
       tr.innerHTML = `
-        <td colspan="4">
+        <td colspan="5">
           <div class="item-nome">${avisoTexto}</div>
           <div class="opcoes">${opcoesHtml}</div>
         </td>
@@ -72,7 +80,7 @@ function renderizarTabela() {
     } else {
       tr.classList.add("linha-aviso");
       tr.innerHTML = `
-        <td colspan="4">
+        <td colspan="5">
           <div class="item-nome">Item não encontrado: "${item.textoOriginal}"</div>
         </td>
       `;
@@ -97,7 +105,9 @@ function renderizarTabela() {
 
 async function gerarOrcamento() {
   const texto = textoLista.value.trim();
-  if (!texto) return;
+  const arquivo = arquivoInput.files[0];
+
+  if (!texto && !arquivo) return;
 
   erroEl.hidden = true;
   resultado.hidden = true;
@@ -105,19 +115,25 @@ async function gerarOrcamento() {
   btnGerar.disabled = true;
 
   try {
+    const formData = new FormData();
+    if (texto) formData.append("texto", texto);
+    if (arquivo) formData.append("arquivo", arquivo);
+
     const resposta = await fetch("/api/orcamento", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ texto }),
+      body: formData,
     });
 
-    if (!resposta.ok) throw new Error("Falha ao gerar orçamento");
+    if (!resposta.ok) {
+      const erroJson = await resposta.json().catch(() => null);
+      throw new Error(erroJson?.erro || "Falha ao gerar orçamento");
+    }
 
     const dados = await resposta.json();
     itensAtuais = dados.itens;
     renderizarTabela();
   } catch (err) {
-    erroEl.textContent = "Não foi possível gerar o orçamento. Tente novamente.";
+    erroEl.textContent = err.message || "Não foi possível gerar o orçamento. Tente novamente.";
     erroEl.hidden = false;
   } finally {
     carregando.hidden = true;

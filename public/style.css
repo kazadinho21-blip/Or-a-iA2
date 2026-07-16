@@ -50,6 +50,31 @@ body {
   background: var(--surface);
 }
 
+.anexo {
+  margin-top: 10px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.anexo-label {
+  font-size: 0.85rem;
+  color: var(--accent);
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.anexo input[type="file"] {
+  font-size: 0.82rem;
+  max-width: 220px;
+}
+
+.nome-arquivo {
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+
 .entrada button {
   margin-top: 12px;
   background: var(--accent);

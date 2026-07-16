@@ -15,6 +15,15 @@
 
     <section class="entrada">
       <textarea id="textoLista" placeholder="Ex: 2x Tanque 10000L, 5 sacos de argamassa, tubo esgoto 100mm PVC"></textarea>
+
+      <div class="anexo">
+        <label for="arquivoInput" class="anexo-label">
+          📎 Anexar foto ou PDF da lista (opcional)
+        </label>
+        <input type="file" id="arquivoInput" accept="image/*,.pdf" />
+        <span id="nomeArquivo" class="nome-arquivo"></span>
+      </div>
+
       <button id="btnGerar">Gerar orçamento</button>
     </section>
 
@@ -22,9 +31,10 @@
       <table id="tabelaResultado">
         <thead>
           <tr>
-            <th>Item</th>
+            <th>Código</th>
+            <th>Descrição</th>
             <th>Qtd.</th>
-            <th>Preço unit.</th>
+            <th>Valor unit.</th>
             <th>Subtotal</th>
           </tr>
         </thead>
